@@ -65,10 +65,7 @@ jobs:
         echo "Commit message is: $CommitMessage"
 
         find test-results -name "*.opencover.xml" -exec cp {} test-results \;
-        ./tools/csmacnz.Coveralls --opencover -i test-results/coverage.opencover.xml --repoToken $COVERALLS_REPO_TOKEN \
-          --commitId $GITHUB_SHA --commitBranch $GITHUB_REF --commitAuthor "$CommitAuthor" \
-          --commitEmail "$CommitAuthorEmail" --commitMessage "$CommitMessage" \
-          --jobId $GITHUB_RUN_NUMBER --serviceName github-actions --useRelativePaths
+        ./tools/csmacnz.Coveralls --opencover -i test-results/coverage.opencover.xml --repoToken $COVERALLS_REPO_TOKEN --commitId $GITHUB_SHA --commitBranch $GITHUB_REF --commitAuthor "$CommitAuthor" --commitEmail "$CommitAuthorEmail" --commitMessage "$CommitMessage" --jobId $GITHUB_RUN_NUMBER --serviceName github-actions --useRelativePaths
 
         if [ $? -ne 0 ]; then
           echo "Can not upload coverage, last exit code is $?."
