@@ -64,7 +64,7 @@ jobs:
         CommitMessage=$(git show -s --pretty=format:"%s")
         echo "Commit message is: $CommitMessage"
 
-        cp test-results/**/*.opencover.xml test-results
+        find test-results -name "*.opencover.xml" -exec cp {} test-results \;
         ./tools/csmacnz.Coveralls --opencover -i test-results/coverage.opencover.xml --repoToken $COVERALLS_REPO_TOKEN \
           --commitId $GITHUB_SHA --commitBranch $GITHUB_REF --commitAuthor "$CommitAuthor" \
           --commitEmail "$CommitAuthorEmail" --commitMessage "$CommitMessage" \
