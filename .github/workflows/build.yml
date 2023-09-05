@@ -14,7 +14,13 @@ env:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
 
     steps:
     - name: Checkout
@@ -42,30 +48,32 @@ jobs:
       run: dotnet build -c Release --no-restore
 
     - name: Test solution
-      run: dotnet test -c Release --no-build --no-restore --verbosity normal --results-directory test-results --collect:"XPlat Code Coverage" `
-           -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura,lcov,teamcity,opencover
+      run: dotnet test -c Release --no-build --no-restore --verbosity normal --results-directory test-results --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura,lcov,teamcity,opencover
 
     - name: Upload coverage
       #if: github.repository_owner == 'casbin-net' && github.event_name == 'push'
       run: |
-        dotnet tool install coveralls.net --version 3.0.0 --tool-path tools;
-        $CommitAuthor = git show -s --pretty=format:"%cn";
-        echo "Coomit author is: $CommitAuthor";
-        $CommitAuthorEmail = git show -s --pretty=format:"%ce";
-        echo "Coomit author email is: $CommitAuthorEmail";
-        $CommitMessage = git show -s --pretty=format:"%s";
-        echo "Coomit message is: $CommitMessage";
-        cp test-results/**/*.opencover.xml test-results
-        tools/csmacnz.Coveralls --opencover -i test-results/coverage.opencover.xml --repoToken $env:COVERALLS_REPO_TOKEN `
-        --commitId $env:SHA --commitBranch $env:REF --commitAuthor "$CommitAuthor" `
-        --commitEmail "$CommitAuthorEmail" --commitMessage "$CommitMessage" `
-        --jobId $env:RUN_NUMBER --serviceName github-actions  --useRelativePaths;
+        sudo apt-get update
+        sudo apt-get install -y curl
 
-        if($LastExitCode -ne 0)
-        {
-            Write-Warning -Message "Can not upload coverage, laat exit code is ${LastExitCode}."
-            $LastExitCode = 0;
-        }
+        dotnet tool install coveralls.net --version 3.0.0 --tool-path tools
+        CommitAuthor=$(git show -s --pretty=format:"%cn")
+        echo "Commit author is: $CommitAuthor"
+        CommitAuthorEmail=$(git show -s --pretty=format:"%ce")
+        echo "Commit author email is: $CommitAuthorEmail"
+        CommitMessage=$(git show -s --pretty=format:"%s")
+        echo "Commit message is: $CommitMessage"
+
+        cp test-results/**/*.opencover.xml test-results
+        ./tools/csmacnz.Coveralls --opencover -i test-results/coverage.opencover.xml --repoToken $COVERALLS_REPO_TOKEN \
+          --commitId $GITHUB_SHA --commitBranch $GITHUB_REF --commitAuthor "$CommitAuthor" \
+          --commitEmail "$CommitAuthorEmail" --commitMessage "$CommitMessage" \
+          --jobId $GITHUB_RUN_NUMBER --serviceName github-actions --useRelativePaths
+
+        if [ $? -ne 0 ]; then
+          echo "Can not upload coverage, last exit code is $?."
+          exit 0
+        fi
 
     - name: Upload test results artefacts
       if: github.repository_owner == 'casbin-net' && github.event_name == 'push'
